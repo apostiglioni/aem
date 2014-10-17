@@ -1,0 +1,20 @@
+#### AEM Author instances ####
+[author]
+localhost
+
+#### AEM Publish instances ####
+[publish]
+localhost
+
+#### Dispatcher nodes ####
+[dispatcher]
+localhost
+
+### All AEM installations ####
+[aem:children]
+author
+publish
+
+### Inventory dependent variables ####
+[aem:vars]
+aem_environment_runmode = dev

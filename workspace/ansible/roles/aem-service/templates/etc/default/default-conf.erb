@@ -1,0 +1,9 @@
+CQ_HOME=<%= @root %>
+CQ_RUNMODE=<%= @runmode %>,nosamplecontent,<%= @runmode_env %>
+CQ_PORT=<%= @port %>
+CQ_JAAS_CONFIG=etc/jaas.config
+CQ_HEAPSIZE_MAX=<%= @jvmsize %>
+CQ_HEAPSIZE_START=<%= @jvmsize %>
+CQ_PERMSIZE=256m
+CQ_FILE_SIZE_LIMIT=8192
+CQ_JVM_OPTS="-server -Xmx${CQ_HEAPSIZE_MAX} -Xms${CQ_HEAPSIZE_START} -XX:MaxPermSize=${CQ_PERMSIZE} -XX:-UseSplitVerifier -Djava.awt.headless=true -Dcrx.memoryCheckDisabled=true -Dcrx.memoryMaxUsage=98 -Dcrx.memoryMinStdev=1 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$CQ_HOME/tools $CQ_NEWRELIC_OPT"

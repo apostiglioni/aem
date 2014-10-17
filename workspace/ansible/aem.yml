@@ -1,0 +1,9 @@
+---
+- hosts: all
+  roles:
+    - { role: docker }
+
+#  handlers:
+#    - name: restart ntpd
+#      service: name=ntpd state=restarted
+# a3803966@trbvm.com

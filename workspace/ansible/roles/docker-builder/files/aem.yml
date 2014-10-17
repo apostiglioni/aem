@@ -1,0 +1,5 @@
+---
+- hosts: author
+  roles:
+    - { role: aem, aem_port: 4502, aem_role_runmode: author }
+    - { role: aem, aem_port: 4503, aem_role_runmode: publish }

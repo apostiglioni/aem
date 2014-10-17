@@ -1,0 +1,16 @@
+---
+- name: copy /etc/default/aem-{{aem_role_runmode}}
+  template: src=etc/default/aem-env-script.j2 
+            dest=/etc/default/aem-{{aem_role_runmode}}
+            owner=root group=root mode=0644
+  sudo: true
+
+- name: copy /etc/init.d/aem-{{aem_role_runmode}}
+  template: src=etc/init.d/aem-start-script.j2 
+            dest=/etc/init.d/aem-{{aem_role_runmode}}
+            owner=root group=root mode=0744
+  sudo: true
+
+- name: start =aem-{{aem_role_runmode}} service  
+  service: name=aem-{{aem_role_runmode}} enabled=yes state=started
+  sudo: true

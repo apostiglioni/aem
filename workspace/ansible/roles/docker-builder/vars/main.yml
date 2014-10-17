@@ -1,0 +1,3 @@
+---
+aem_files: ['{{aem_quickstart_jar}}', '{{aem_license_file}}']
+working_dir: ~/docker-images/

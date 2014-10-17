@@ -1,0 +1,5 @@
+CQ_PORT={{aem_port}}
+CQ_RUNMODE={{aem_all_runmodes | default('nosamplecontent') | join(',')}}
+CQ_JVM_OPTS={{aem_jvm_opts | join(' ')}}
+CQ_FILE_SIZE_LIMIT={{aem_file_size_limit}}
+CQ_JAAS_CONFIG=etc/jaas.config

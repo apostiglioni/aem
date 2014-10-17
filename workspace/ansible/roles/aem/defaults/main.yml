@@ -1,0 +1,19 @@
+aem_root_path: /opt/aem/
+aem_install_path: "{{aem_root_path}}/{{aem_role_runmode}}"
+aem_additional_runmodes: nosamplecontent
+aem_os_user: aem
+aem_file_size_limit: 8192
+aem_jvm_max_perm: 256M
+aem_jvm_heap_ini: 1024M
+aem_jvm_heap_max: 1024M
+aem_jvm_opts: 
+ - -server 
+ - -Xmx{{aem_jvm_heap_max}} 
+ - -Xms{{aem_jvm_heap_ini}} 
+ - -XX:MaxPermSize={{aem_jvm_max_perm}} 
+ - -Djava.awt.headless=true
+ - -Dcrx.memoryCheckDisabled=true 
+ - -Dcrx.memoryMaxUsage=98 
+ - -Dcrx.memoryMinStdev=1 
+ - -XX:+HeapDumpOnOutOfMemoryError 
+ - -XX:HeapDumpPath={{aem_install_path}}/heap_dump 

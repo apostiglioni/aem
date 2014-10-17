@@ -1,0 +1,5 @@
+- name: copy starter script
+  copy: src=aem-6-starter dest={{working_dir}}/aem-6-starter
+
+- name: copy aem-env-vars
+  template: src=aem-env-vars.j2 dest={{working_dir}}/aem-env-vars

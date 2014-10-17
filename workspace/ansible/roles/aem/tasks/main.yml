@@ -1,0 +1,24 @@
+---
+- debug: msg="Using {{aem_os_user}} as os user and user group"
+
+- group: name={{aem_os_user}} state=present
+  sudo: true
+
+  # generate_ssh_key=yes ssh_key_bits=2048
+- user: name={{aem_os_user}} group={{aem_os_user}} state=present
+  sudo: true
+
+- name: copy {{aem_quickstart_jar}} to {{aem_install_path}}
+  copy: src="{{aem_quickstart_jar}}" dest="{{aem_install_path}}/" owner={{aem_os_user}} group={{aem_os_user}} mode=0644
+  sudo: true
+
+- name: copy {{aem_license_file}} to {{aem_install_path}}
+  copy: src="{{aem_license_file}}" dest="{{aem_install_path}}/" owner={{aem_os_user}} group={{aem_os_user}} mode=0600
+  sudo: true
+
+- name: unpack {{aem_install_path}}/{{aem_quickstart_jar}}
+  sudo: true
+  sudo_user: "{{aem_os_user}}"
+  command: java -Xmx1024m -XX:MaxPermSize=256M -jar {{aem_quickstart_jar | basename}} -unpack -r {{aem_role_runmode}}
+  args:
+    chdir: "{{aem_install_path}}"

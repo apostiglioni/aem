@@ -1,0 +1,12 @@
+---
+- name: Install latest software-properties-common package
+  apt: pkg=software-properties-common state=latest
+  sudo: true
+
+- name: Add ansible/ansible ppa repository
+  apt_repository: repo=ppa:ansible/ansible state=present
+  sudo: true
+
+- name: Install latest ansible package (update-cache=yes force=yes)
+  apt: pkg=ansible state=latest update-cache=yes force=yes
+  sudo: true

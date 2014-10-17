@@ -1,0 +1,246 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          aem-{{aem_role_runmode}}
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Adobe AEM {{aem_role_runmode}}
+# Description:       Adobe AEM {{aem_role_runmode}} instance
+### END INIT INFO
+
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="Adobe AEM {{aem_role_runmode}} instance"
+NAME=aem-{{aem_role_runmode}}
+
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+# The defaults file must set CQ_HOME and CQ_RUNMODE
+if [ -z "$CQ_HOME" -o ! -d "$CQ_HOME" ]; then
+    echo "CQ_HOME must be set to the installation directory for aem"
+    exit 2
+fi
+if [ -z "$CQ_RUNMODE" ]; then
+    echo "CQ_RUNMODE is not set"
+    exit 2
+fi
+
+if [ -z "$CQ_USER" ]; then
+    CQ_USER="aem"
+fi
+
+# set all the filename stuff
+QUICKSTART=$CQ_HOME/crx-quickstart
+DAEMONSTART=$QUICKSTART/bin/start
+DAEMONSTOP=$QUICKSTART/bin/stop
+PIDFILE=$QUICKSTART/conf/cq.pid
+SCRIPTNAME=/etc/init.d/$NAME
+CURL=`which curl`
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
+# and status_of_proc is working.
+. /lib/lsb/init-functions
+
+#
+# Function that starts the daemon/service
+#
+do_start()
+{
+    # Return
+    #   0 if daemon has been started
+    #   1 if daemon was already running
+    #   2 if daemon could not be started
+
+   # jar file for newrelic
+   if [ -z "$CQ_NEWRELIC_JAR" ]; then
+	CQ_NEWRELIC_JAR="$CQ_HOME/newrelic/newrelic.jar"
+   fi
+
+# newrelic option if jar file exists
+    CQ_NEWRELIC_OPT=""
+    if [ -f "$CQ_NEWRELIC_JAR" ]; then
+	CQ_NEWRELIC_OPT="-javaagent:$CQ_NEWRELIC_JAR"
+    fi
+
+    if [ ! -z "$CQ_NEWRELIC_OPT" ]; then
+     CQ_JVM_OPTS=$CQ_JVM_OPTS:$CQ_NEWRELIC_OPT
+    fi
+
+    export CQ_HOME CQ_PORT CQ_RUNMODE CQ_NEWRELIC_JAR CQ_JVM_OPTS CQ_FILE_SIZE_LIMIT
+
+    # make sure it isnt already running
+    pidofproc -p "$PIDFILE" $NAME >/dev/null
+    if [ $? -eq 0 ]; then
+    return 1
+    fi
+
+    # start the daemon with the aem script
+    start-stop-daemon --start -q -c $CQ_USER -p $PIDFILE -a $DAEMONSTART || return 2
+
+    # use curl to make sure the server gets started
+    # (this is pretty ugly)
+    if [ -n "$CURL" -a -x "$CURL" ]; then
+	port=${CQ_PORT:-4502}
+	cnt=100
+	while [ "$cnt" -gt 0 ]; do
+	    $CURL -s -f -m 5 -o /dev/null http://127.0.0.1:$port/libs/granite/core/content/login.html
+	    if [ $? -eq 0 ]; then
+		return 0
+	    fi
+	    cnt=$(expr $cnt - 1)
+	    sleep 3
+	done
+    fi
+
+    return 2
+}
+
+#
+# Function that stops the daemon/service
+#
+do_stop()
+{
+    # Return
+    #   0 if daemon has been stopped
+    #   1 if daemon was already stopped
+    #   2 if daemon could not be stopped
+    #   other if a failure occurred
+
+    # do this by hand because the stop script is too ambitious
+
+    # is the process even running?
+    if [ ! -f "$PIDFILE" ]; then
+	return 1
+    fi
+    kill -0 $(cat $PIDFILE) >/dev/null 2>&1 || return 1
+
+    # invoke jar file and use stop arg
+    dir=$(pwd)
+    cd $QUICKSTART
+    JAR=$(ls app/*.jar | head -1)
+    su $CQ_USER -c "java -jar $JAR stop -c ." >/tmp/cq5init$$ 2>&1
+    STATUS=$?
+    cd $pwd
+    rm $PIDFILE
+
+    if [ "$STATUS" -ne 0 ]; then
+	cat /tmp/cq5init$$
+        rm -f /tmp/cq5init$$
+	return 2
+    fi
+
+    rm -f /tmp/cq5init$$
+
+    PROCESS="java.*{{aem_role_runmode}}"
+
+    cnt=100
+    while [ "$cnt" -gt 0 ]; do
+        RESULT=`pgrep ${PROCESS}`
+
+        if [ "${RESULT:-null}" = null ]; then
+            return 0
+        else
+            echo "Waiting for process to finish"
+        fi
+	cnt=$(expr $cnt - 1)
+        sleep 3
+    done
+
+    return 2
+}
+
+#
+# Function that provides service status
+#
+do_status()
+{
+    # Return as per Linux Standard Base Core: http://refspecs.linuxbase.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/iniscrptact.html
+    # 0	program is running or service is OK
+    # 1	program is dead and /var/run pid file exists
+    # 2	program is dead and /var/lock lock file exists
+    # 3	program is not running
+    # 4	program or service status is unknown
+
+    status_of_proc -p "$PIDFILE" java "$NAME"
+    STATUS=$?
+
+    if [ "$STATUS" -ne 0 ]; then
+        # This should cover status 1, 2, 3
+	return $STATUS
+    fi
+
+    # use curl to make sure the server gets started
+    # (this is pretty ugly)
+    if [ -n "$CURL" -a -x "$CURL" ]; then
+	port=${CQ_PORT:-4502}
+	cnt=100
+	while [ "$cnt" -gt 0 ]; do
+	    $CURL -s -f -m 5 -o /dev/null http://127.0.0.1:$port/libs/granite/core/content/login.html
+	    if [ $? -eq 0 ]; then
+		return 0
+	    fi
+	    cnt=$(expr $cnt - 1)
+	    sleep 3
+	done
+    fi
+
+    # process is running but we're not able to validate it
+    return 4
+}
+
+case "$1" in
+  start)
+    [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+    do_start
+    case "$?" in
+        0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+        2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+    esac
+    ;;
+  stop)
+    [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+    do_stop
+    case "$?" in
+        0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+        2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+    esac
+    ;;
+  status)
+    do_status
+    exit $?
+    ;;
+  restart|force-reload)
+    #
+    # If the "reload" option is implemented then remove the
+    # 'force-reload' alias
+    #
+    log_daemon_msg "Restarting $DESC" "$NAME"
+    do_stop
+    case "$?" in
+      0|1)
+        do_start
+        case "$?" in
+            0) log_end_msg 0 ;;
+            1) log_end_msg 1 ;; # Old process is still running
+            *) log_end_msg 1 ;; # Failed to start
+        esac
+        ;;
+      *)
+        # Failed to stop
+        log_end_msg 1
+        ;;
+    esac
+    ;;
+  *)
+    echo "Usage: $SCRIPTNAME {start|stop|status|force-reload}" >&2
+    exit 3
+    ;;
+esac
+
+:

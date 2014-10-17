@@ -1,0 +1,12 @@
+---
+- name: Remove OpenJDK
+  apt: pkg=openjdk-7-jre state=absent
+
+- name: Verify if java is installed
+  shell: java -version
+  register: java_result
+  ignore_errors: true
+
+- name: Install Oracle JRE
+  include: oracle.yml
+  when: java_result.rc != 0
